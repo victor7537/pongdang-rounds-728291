@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>퐁당 가맹점 순회표</title>
+<title>퐁당 가맹점 방문일지</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <style>
-/* 레이아웃: 한 줄에 한 매장인 표형 목록. 위에 지역 탭과 열 이름을 고정하고, 행을 누르면 상세가 펼쳐진다. */
+/* 레이아웃: 한 줄에 한 매장인 표형 목록. 위에 지역 탭과 열 이름을 고정하고, 행을 누르면 오늘 기록 입력칸과 상세가 펼쳐진다. */
 :root {
-  color-scheme: light;
   --bg: #EFF3F1;
   --surface: #FFFFFF;
   --ink: #16211E;
@@ -21,12 +21,16 @@
   --accent: #0B6B5A;
   --accent-ink: #FFFFFF;
   --accent-soft: #DDEFE9;
+  --warn: #7F4400;
+  --warn-bg: #FFEACB;
+  --warn-dot: #D9A22B;
+  --bad: #A3251C;
+  --bad-bg: #FCE3E0;
   --font-body: "Noto Sans KR", system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   --font-num: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
+  :root:not([data-theme="light"]) {
     --bg: #0E1514;
     --surface: #17211F;
     --ink: #E7EFEC;
@@ -36,7 +40,30 @@
     --accent: #4CC2A8;
     --accent-ink: #0A1D19;
     --accent-soft: #1A3731;
+    --warn: #F4BE70;
+    --warn-bg: #3A2B12;
+    --warn-dot: #D9A22B;
+    --bad: #FF9C92;
+    --bad-bg: #411D1A;
+    color-scheme: dark;
   }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1514;
+  --surface: #17211F;
+  --ink: #E7EFEC;
+  --muted: #9CB0A9;
+  --line: #2A3A36;
+  --line-strong: #4A605A;
+  --accent: #4CC2A8;
+  --accent-ink: #0A1D19;
+  --accent-soft: #1A3731;
+  --warn: #F4BE70;
+  --warn-bg: #3A2B12;
+  --warn-dot: #D9A22B;
+  --bad: #FF9C92;
+  --bad-bg: #411D1A;
+  color-scheme: dark;
 }
 [hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
@@ -48,21 +75,40 @@ body {
   font: 400 15px/1.5 var(--font-body);
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: max(20px, env(safe-area-inset-top, 0px)) 48px;
+  padding-block: 20px 56px;
 }
-button, input, select { font: inherit; color: inherit; }
-button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 10;
+  background: var(--bg);
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .wrap { max-width: 760px; margin: 0 auto; }
 
 header h1 { margin: 0; font-size: 22px; line-height: 1.25; font-weight: 700; letter-spacing: -0.01em; }
-header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.dayline { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.dayline b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
 .prog { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; margin-top: 14px; }
 .prog span { font: 500 13px var(--font-num); font-variant-numeric: tabular-nums; }
 .track { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
 .track u { display: block; height: 100%; width: 0; background: var(--accent); text-decoration: none; transition: width .25s ease; }
 .link { border: 0; background: none; color: var(--muted); font-size: 12.5px; padding: 8px 0 8px 6px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 
-.tools { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-top: 16px; }
+.sync { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 7px 8px 7px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: 12.5px; }
+.sync .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); flex: none; }
+.sync[data-s="ok"] .dot { background: var(--accent); }
+.sync[data-s="pending"] .dot { background: var(--warn-dot); }
+.sync[data-s="error"] .dot { background: var(--bad); }
+.sync .t { flex: 1; min-width: 0; color: var(--muted); line-height: 1.4; }
+.sync button { flex: none; height: 30px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font-size: 12.5px; font-weight: 500; cursor: pointer; }
+.who { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; color: var(--muted); }
+.who input { flex: 1; min-width: 0; height: 40px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 0 12px; font-size: 16px; }
+
+.tools { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-top: 14px; }
 .tools input, .tools select {
   height: 44px; border: 1px solid var(--line); background: var(--surface);
   border-radius: 10px; padding: 0 12px; font-size: 16px; min-width: 0;
@@ -81,7 +127,7 @@ header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
 .chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .chip[aria-pressed="true"] .ct { opacity: .85; }
 
-.sticky { position: sticky; top: 0; z-index: 5; background: var(--bg); margin-top: 14px; }
+.sticky { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); margin-top: 14px; }
 .regions { display: flex; gap: 6px; overflow-x: auto; padding: 6px 0 8px; scrollbar-width: none; }
 .regions::-webkit-scrollbar { display: none; }
 .regions .chip { flex: none; }
@@ -130,18 +176,30 @@ header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
 .v small { font: 400 11px var(--font-body); margin-left: 1px; color: var(--muted); }
 .bar { display: block; height: 4px; border-radius: 2px; background: var(--line); margin-top: 5px; overflow: hidden; }
 .bar u { display: block; height: 100%; background: var(--accent); text-decoration: none; }
-.until { grid-column: 1 / -1; margin-top: 6px; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted); }
+.tags { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 5px; margin-top: 7px; }
+.tag { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 11.5px; font-weight: 700; line-height: 1.5; }
+.tag.bad { background: var(--bad-bg); color: var(--bad); }
+.tag.warn { background: var(--warn-bg); color: var(--warn); }
+.tag.ok { background: var(--accent-soft); color: var(--accent); }
+.until { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted); margin-left: 2px; }
 .pv {
-  grid-column: 1 / -1; margin-top: 4px; font-size: 13px; line-height: 1.45; color: var(--muted);
+  grid-column: 1 / -1; margin-top: 6px; font-size: 13px; line-height: 1.45; color: var(--muted);
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
+.pv.mine { color: var(--ink); }
 .store.open .pv { display: none; }
-.store.done .main > * { opacity: .55; }
-.store.done .nm b { text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.store.done .nm b { color: var(--accent); }
 .store.open { background: color-mix(in srgb, var(--accent-soft) 35%, var(--surface)); }
 
 .detail { padding: 2px 14px 16px 14px; border-top: 1px dashed var(--line); }
 .detail h3 { margin: 14px 0 6px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; color: var(--muted); }
+.log { display: grid; gap: 8px; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); }
+.logrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; }
+.logrow .vs { font-weight: 700; }
+.logrow .vs.on { color: var(--accent); }
+.logrow label { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.logrow input { height: 36px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); padding: 0 6px; font-size: 16px; }
+.log textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 16px; line-height: 1.45; background: var(--bg); }
 .notes { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
 .notes li { position: relative; padding-left: 14px; font-size: 14.5px; line-height: 1.5; }
 .notes li::before { content: ""; position: absolute; left: 1px; top: 0.7em; width: 6px; height: 2px; background: var(--accent); }
@@ -157,6 +215,11 @@ header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
 
 .empty { padding: 28px 16px; text-align: center; color: var(--muted); }
 footer { margin-top: 16px; font-size: 12px; line-height: 1.6; color: var(--muted); }
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 20; max-width: calc(100% - 32px);
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px)); padding: 10px 14px; border-radius: 10px;
+  background: var(--ink); color: var(--bg); font-size: 13px; text-align: center;
+}
 
 @media (max-width: 359px) {
   .thead, .main { --c1: 54px; --c2: 66px; }
@@ -166,17 +229,22 @@ footer { margin-top: 16px; font-size: 12px; line-height: 1.6; color: var(--muted
   .track u, .nm .chev { transition: none; }
 }
 </style>
-</head>
-<body>
+
 <div class="wrap">
   <header>
-    <h1>퐁당 가맹점 순회표</h1>
-    <p id="sub">23개 매장 · 2026년 매출은 10.31까지</p>
+    <h1>퐁당 가맹점 방문일지</h1>
+    <p class="dayline" id="dayline"></p>
     <div class="prog">
-      <span id="progText">방문 0 / 23</span>
+      <span id="progText">방문 0 / 0</span>
       <div class="track" aria-hidden="true"><u id="progFill"></u></div>
-      <button class="link" id="reset" type="button">방문 초기화</button>
+      <button class="link" id="reset" type="button">오늘 기록 지우기</button>
     </div>
+    <div class="sync" id="sync" data-s="off" role="status">
+      <span class="dot" aria-hidden="true"></span>
+      <span class="t" id="syncText"></span>
+      <button type="button" id="syncNow" hidden>지금 저장</button>
+    </div>
+    <label class="who">작성자<input id="author" type="text" placeholder="이름 (일지에 함께 기록됩니다)" autocomplete="name" maxlength="20"></label>
   </header>
 
   <div class="tools">
@@ -201,73 +269,35 @@ footer { margin-top: 16px; font-size: 12px; line-height: 1.6; color: var(--muted
   </div>
   <div class="list" id="list"></div>
 
-  <footer>
-    퐁당 가맹점 순회용 정보입니다. 방문 체크는 이 기기의 브라우저에만 저장됩니다.
-  </footer>
+  <footer id="foot"></footer>
 </div>
+<div class="toast" id="toast" role="status" hidden></div>
 
 <script>
 (function () {
+  "use strict";
+  var FULL = false;
+  var SYNC = {"url":"","key":"u7XtwnSl-HfIXfV58ag"};
+  var DATA = [{"n":1,"name":"모현점","region":"전북","start":"2020.05.10","end":"2028.05.09","pos":"OK포스","py":29,"fl":3,"change":"아니오","ops":"직접운영","src":"전부 사입","items":"모든 품목","avg":408574,"s25":317091732,"s26":156129939,"pys":5383791,"notes":[]},{"n":2,"name":"세종점","region":"세종","start":"2020.05.28","end":"2028.05.27","pos":"업솔루션","py":53,"fl":3,"change":"아니오","ops":"혼합운영","src":"일부 사입","items":"육류","avg":924011,"s25":782609350,"s26":561847026,"pys":10600887,"notes":[]},{"n":3,"name":"관저점","region":"대전","start":"2020.11.06","end":"2026.11.05","pos":"OK포스","py":149,"fl":3,"change":"아니오","ops":"혼합운영","src":"일부 사입","items":"소스, 육류","avg":220977,"s25":626347340,"s26":374239970,"pys":2511678,"notes":["주차 공간 협소"]},{"n":4,"name":"오송점","region":"충북","start":"2021.05.10","end":"2027.05.09","pos":"OK포스","py":54,"fl":1,"change":"아니오","ops":"오토운영","src":"전부 사입","items":"모든 품목","avg":361086,"s25":319908400,"s26":213292456,"pys":3949860,"notes":[]},{"n":5,"name":"조치원점","region":"세종","start":"2022.02.26","end":"2028.02.25","pos":"OK포스","py":59,"fl":3,"change":"아니오","ops":"직접운영","src":"일부 사입","items":"소스, 육류","avg":514525,"s25":351316082,"s26":274489849,"pys":4652370,"notes":[]},{"n":6,"name":"유성점","region":"대전","start":"2022.10.24","end":"2028.10.23","pos":"업솔루션","py":53,"fl":1,"change":"아니오","ops":"오토운영","src":"전부 사입","items":"모든 품목","avg":1112460,"s25":829449430,"s26":650238186,"pys":12268645,"notes":[]},{"n":7,"name":"둔산점","region":"대전","start":"2023.03.14","end":"2027.03.13","pos":"OK포스","py":95,"fl":2,"change":"아니오","ops":"오토운영","src":"일부 사입","items":"소스, 육류, 중식자재","avg":289957,"s25":646425408,"s26":344856482,"pys":3630068,"notes":[]},{"n":8,"name":"공주점","region":"충남","start":"2023.06.16","end":"2027.06.15","pos":"OK포스","py":56,"fl":1,"change":"아니오","ops":"직접운영","src":"일부 사입","items":"육류","avg":1053580,"s25":796782200,"s26":619864902,"pys":11069016,"notes":["공주대학교 주변 사거리 1층에 있어 입지 좋음","주차 공간 협소"]},{"n":9,"name":"탕정점","region":"충남","start":"2023.07.20","end":"2027.07.19","pos":"OK포스","py":54,"fl":2,"change":"아니오","ops":"직접운영","src":"일부 사입","items":"소스, 육류, 중식자재","avg":1466502,"s25":851922411,"s26":723834700,"pys":13404346,"notes":[]},{"n":10,"name":"논산점","region":"충남","start":"2023.08.10","end":"2027.08.09","pos":"업솔루션","py":85,"fl":2,"change":"아니오","ops":"직접운영","src":"해당 없음","items":"","avg":796474,"s25":859698842,"s26":763201138,"pys":8978837,"notes":[]},{"n":11,"name":"전주도청점","region":"전북","start":"2023.09.01","end":"2027.08.31","pos":"OK포스","py":105,"fl":2,"change":"아니오","ops":"혼합운영","src":"일부 사입","items":"소스, 육류, 중식자재","avg":415484,"s25":682032100,"s26":479842700,"pys":4569930,"notes":["주변 공영주차장"]},{"n":12,"name":"광주첨단점","region":"전북","start":"2023.09.25","end":"2027.09.24","pos":"업솔루션","py":95,"fl":3,"change":"예","ops":"직접운영","src":"일부 사입","items":"육류","avg":829490,"s25":1470045599,"s26":918955753,"pys":9673218,"notes":[]},{"n":13,"name":"전주혁신점","region":"전북","start":"2023.10.16","end":"2027.10.15","pos":"OK포스","py":110,"fl":3,"change":"아니오","ops":"직접운영","src":"일부 사입","items":"육류, 중식자재","avg":677449,"s25":1239884110,"s26":829321172,"pys":7539283,"notes":[]},{"n":14,"name":"정읍점","region":"전북","start":"2023.11.10","end":"2027.11.09","pos":"OK포스","py":77,"fl":1,"change":"아니오","ops":"직접운영","src":"일부 사입","items":"소스, 육류","avg":420400,"s25":573750573,"s26":376800892,"pys":4893518,"notes":[]},{"n":15,"name":"영등점","region":"전북","start":"2024.03.05","end":"2028.03.04","pos":"OK포스","py":100,"fl":1,"change":"아니오","ops":"직접운영","src":"일부 사입","items":"소스, 육류","avg":466171,"s25":797445790,"s26":486763400,"pys":4867634,"notes":[]},{"n":16,"name":"대구만촌","region":"대구","start":"2024.04.26","end":"2028.04.25","pos":"OK포스","py":63,"fl":1,"change":"아니오","ops":"혼합운영","src":"해당 없음","items":"","avg":949540,"s25":720522917,"s26":575982414,"pys":9142578,"notes":[]},{"n":17,"name":"세종시청","region":"세종","start":"2024.05.14","end":"2028.05.13","pos":"OK포스","py":85,"fl":2,"change":"아니오","ops":"직접운영","src":"일부 사입","items":"육류","avg":679786,"s25":618315618,"s26":571814581,"pys":6727230,"notes":[]},{"n":18,"name":"내포신도시점","region":"충남","start":"2024.07.15","end":"2028.07.14","pos":"OK포스","py":75,"fl":2,"change":"아니오","ops":"직접운영","src":"해당 없음","items":"","avg":608090,"s25":711644800,"s26":430310464,"pys":5737473,"notes":[]},{"n":19,"name":"율량점","region":"충북","start":"2024.08.08","end":"2028.08.07","pos":"업솔루션","py":140,"fl":2,"change":"아니오","ops":"직접운영","src":"해당 없음","items":"","avg":657370,"s25":1078102998,"s26":927824417,"pys":6627317,"notes":["직영 점장 관리 매장(율량, 동남지구 동일 점장)"]},{"n":20,"name":"김포구래점","region":"경기","start":"2025.05.24","end":"2027.05.23","pos":"업솔루션","py":96,"fl":2,"change":"예","ops":"직접운영","src":"일부 사입","items":"육류","avg":460433,"s25":267499591,"s26":469131175,"pys":4886783,"notes":[]},{"n":21,"name":"동남지구점","region":"충북","start":"2025.12.01","end":"2027.11.30","pos":"업솔루션","py":85,"fl":2,"change":"아니오","ops":"직접운영","src":"해당 없음","items":"","avg":878838,"s25":236194270,"s26":684301249,"pys":8050603,"notes":["직영 점장 관리 매장(율량, 동남지구 동일 점장)"]},{"n":22,"name":"청주봉명점","region":"충북","start":"2026.03.05","end":"2028.03.04","pos":"업솔루션","py":97,"fl":3,"change":"아니오","ops":"직접운영","src":"해당 없음","items":"","avg":222559,"s25":0,"s26":225131338,"pys":2320942,"notes":["주차 공간 협소"]},{"n":23,"name":"전주에코시티점","region":"전북","start":"2026.03.13","end":"2028.03.12","pos":"업솔루션","py":116,"fl":2,"change":"아니오","ops":"직접운영","src":"일부 사입","items":"육류","avg":284742,"s25":0,"s26":284869900,"pys":2455775,"notes":["주변 공영주차장"]}];
   var REGION_ORDER = ["충북", "세종", "대전", "충남", "전북", "대구", "경기"];
+  var DOW = ["일", "월", "화", "수", "목", "금", "토"];
 
-  var DATA = [
-    { n: 1, name: "모현점", region: "전북", start: "2020.05.10", end: "2026.05.09", pos: "OK포스", py: 29, fl: 3, change: "아니오", ops: "직접운영", src: "전부 사입", items: "모든 품목", memo: [],
-      avg: 408574, s25: 317091732, s26: 156129939, pys: 5383791 },
-    { n: 2, name: "세종점", region: "세종", start: "2020.05.26", end: "2026.05.27", pos: "업솔루션", py: 53, fl: 3, change: "아니오", ops: "혼합운영", src: "일부 사입", items: "육류", memo: [],
-      avg: 924011, s25: 782609350, s26: 561847026, pys: 10600887 },
-    { n: 3, name: "관저점", region: "대전", start: "2020.11.06", end: "2026.11.05", pos: "OK포스", py: 149, fl: 3, change: "아니오", ops: "혼합운영", src: "일부 사입", items: "소스, 육류", memo: ["주차 공간 협소"],
-      avg: 220977, s25: 626347340, s26: 374239970, pys: 2511678 },
-    { n: 4, name: "오송점", region: "충북", start: "2021.05.10", end: "2027.05.09", pos: "OK포스", py: 54, fl: 1, change: "아니오", ops: "오토운영", src: "전부 사입", items: "모든 품목", memo: [],
-      avg: 361086, s25: 319908400, s26: 213292456, pys: 3949860 },
-    { n: 5, name: "조치원점", region: "세종", start: "2022.02.26", end: "2028.02.25", pos: "OK포스", py: 59, fl: 3, change: "아니오", ops: "직접운영", src: "일부 사입", items: "소스, 육류", memo: [],
-      avg: 514525, s25: 351316082, s26: 274489849, pys: 4652370 },
-    { n: 6, name: "유성점", region: "대전", start: "2022.10.24", end: "2028.10.23", pos: "업솔루션", py: 53, fl: 1, change: "아니오", ops: "오토운영", src: "전부 사입", items: "모든 품목", memo: [],
-      avg: 1112460, s25: 829449430, s26: 650238186, pys: 12268645 },
-    { n: 7, name: "둔산점", region: "대전", start: "2023.03.14", end: "2027.03.13", pos: "OK포스", py: 95, fl: 2, change: "아니오", ops: "오토운영", src: "일부 사입", items: "소스, 육류, 중식자재", memo: [],
-      avg: 289957, s25: 646425408, s26: 344856482, pys: 3630068 },
-    { n: 8, name: "공주점", region: "충남", start: "2023.06.16", end: "2027.06.15", pos: "OK포스", py: 56, fl: 1, change: "아니오", ops: "직접운영", src: "일부 사입", items: "육류", memo: ["공주대학교 주변 사거리 1층에 있어 입지 좋음", "주차 공간 협소"],
-      avg: 1053580, s25: 796782200, s26: 619864902, pys: 11069016 },
-    { n: 9, name: "탕정점", region: "충남", start: "2023.07.20", end: "2027.07.19", pos: "OK포스", py: 54, fl: 2, change: "아니오", ops: "직접운영", src: "일부 사입", items: "소스, 육류, 중식자재", memo: [],
-      avg: 1466502, s25: 851922411, s26: 723834700, pys: 13404346 },
-    { n: 10, name: "논산점", region: "충남", start: "2023.08.10", end: "2027.08.09", pos: "업솔루션", py: 85, fl: 2, change: "아니오", ops: "직접운영", src: "해당 없음", items: "", memo: [],
-      avg: 796474, s25: 859698842, s26: 763201138, pys: 8978837 },
-    { n: 11, name: "전주도청점", region: "전북", start: "2023.09.01", end: "2027.08.31", pos: "OK포스", py: 105, fl: 2, change: "아니오", ops: "혼합운영", src: "일부 사입", items: "소스, 육류, 중식자재", memo: ["주변 공영주차장"],
-      avg: 415484, s25: 682032100, s26: 479842700, pys: 4569930 },
-    { n: 12, name: "광주첨단점", region: "전북", start: "2023.09.25", end: "2027.09.24", pos: "업솔루션", py: 95, fl: 3, change: "예", ops: "직접운영", src: "일부 사입", items: "육류", memo: [],
-      avg: 829490, s25: 1470045599, s26: 918955753, pys: 9673218 },
-    { n: 13, name: "전주혁신점", region: "전북", start: "2023.10.16", end: "2027.10.15", pos: "OK포스", py: 110, fl: 3, change: "아니오", ops: "직접운영", src: "일부 사입", items: "육류, 중식자재", memo: [],
-      avg: 677449, s25: 1239884110, s26: 829321172, pys: 7539283 },
-    { n: 14, name: "정읍점", region: "전북", start: "2023.11.10", end: "2027.11.09", pos: "OK포스", py: 77, fl: 1, change: "아니오", ops: "직접운영", src: "일부 사입", items: "소스, 육류", memo: [],
-      avg: 420400, s25: 573750573, s26: 376800892, pys: 4893518 },
-    { n: 15, name: "영등점", region: "전북", start: "2024.03.05", end: "2028.03.04", pos: "OK포스", py: 100, fl: 1, change: "아니오", ops: "직접운영", src: "일부 사입", items: "소스, 육류", memo: [],
-      avg: 466171, s25: 797445790, s26: 486763400, pys: 4867634 },
-    { n: 16, name: "대구만촌", region: "대구", start: "2024.04.26", end: "2028.04.25", pos: "OK포스", py: 63, fl: 1, change: "아니오", ops: "혼합운영", src: "해당 없음", items: "", memo: [],
-      avg: 949540, s25: 720522917, s26: 575982414, pys: 9142578 },
-    { n: 17, name: "세종시청", region: "세종", start: "2024.05.14", end: "2028.05.13", pos: "OK포스", py: 85, fl: 2, change: "아니오", ops: "직접운영", src: "일부 사입", items: "육류", memo: [],
-      avg: 679786, s25: 618315618, s26: 571814581, pys: 6727230 },
-    { n: 18, name: "내포신도시점", region: "충남", start: "2024.07.15", end: "2028.07.14", pos: "OK포스", py: 75, fl: 2, change: "아니오", ops: "직접운영", src: "해당 없음", items: "", memo: [],
-      avg: 608090, s25: 711644800, s26: 430310464, pys: 5737473 },
-    { n: 19, name: "율량점", region: "충북", start: "2024.08.08", end: "2028.08.07", pos: "업솔루션", py: 140, fl: 2, change: "아니오", ops: "직접운영", src: "해당 없음", items: "", memo: ["직영 점장 관리 매장(율량, 동남지구 동일 점장)"],
-      avg: 657370, s25: 1078102998, s26: 927824417, pys: 6627317 },
-    { n: 20, name: "김포구래점", region: "경기", start: "2025.05.24", end: "2027.05.23", pos: "업솔루션", py: 96, fl: 2, change: "예", ops: "직접운영", src: "일부 사입", items: "육류", memo: [],
-      avg: 460433, s25: 267499591, s26: 469131175, pys: 4886783 },
-    { n: 21, name: "동남지구점", region: "충북", start: "2025.12.01", end: "2027.11.30", pos: "업솔루션", py: 85, fl: 2, change: "아니오", ops: "직접운영", src: "해당 없음", items: "", memo: ["직영 점장 관리 매장(율량, 동남지구 동일 점장)"],
-      avg: 878838, s25: 236194270, s26: 684301249, pys: 8050603 },
-    { n: 22, name: "청주봉명점", region: "충북", start: "2026.03.05", end: "2028.03.04", pos: "업솔루션", py: 97, fl: 3, change: "아니오", ops: "직접운영", src: "해당 없음", items: "", memo: ["주차 공간 협소"],
-      avg: 222559, s25: 0, s26: 225131338, pys: 2320942 },
-    { n: 23, name: "전주에코시티점", region: "전북", start: "2026.03.13", end: "2028.03.12", pos: "업솔루션", py: 116, fl: 2, change: "아니오", ops: "직접운영", src: "일부 사입", items: "육류", memo: ["주변 공영주차장"],
-      avg: 284742, s25: 0, s26: 284869900, pys: 2455775 }
-  ];
+  /* ---------- 시간: 한국 시간 기준, 하루는 오전 5시에 바뀝니다 ---------- */
+  function kst(offsetHours) { return new Date(Date.now() + (9 + offsetHours) * 3600000); }
+  function pad(n) { return n < 10 ? "0" + n : "" + n; }
+  function bizDay() { var k = kst(-5); return k.getUTCFullYear() + "-" + pad(k.getUTCMonth() + 1) + "-" + pad(k.getUTCDate()); }
+  function bizLabel() { var k = kst(-5); return k.getUTCFullYear() + "." + pad(k.getUTCMonth() + 1) + "." + pad(k.getUTCDate()) + " (" + DOW[k.getUTCDay()] + ")"; }
+  function nowHM() { var k = kst(0); return pad(k.getUTCHours()) + ":" + pad(k.getUTCMinutes()); }
+  function todayMs() { var k = kst(0); return Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), k.getUTCDate()); }
 
-  var now = new Date();
-  var TODAY = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
   var MAXAVG = Math.max.apply(null, DATA.map(function (d) { return d.avg; }));
   DATA.forEach(function (d) {
     var p = d.end.split(".").map(Number);
     d.endMs = Date.UTC(p[0], p[1] - 1, p[2]);
-    d.dday = Math.round((d.endMs - TODAY) / 86400000);
+    d.dday = Math.round((d.endMs - todayMs()) / 86400000);
   });
 
+  /* ---------- 서식 ---------- */
   function won(n) { return n.toLocaleString("ko-KR") + "원"; }
   function eok(n) {
     if (n >= 1e8) return (n / 1e8).toFixed(2) + "<small>억</small>";
@@ -280,20 +310,102 @@ footer { margin-top: 16px; font-size: 12px; line-height: 1.6; color: var(--muted
     if (d.dday === 0) return "오늘";
     return "D-" + d.dday;
   }
+  function exitText(s) {
+    if (s.charAt(0) !== "O") return "없음";
+    var m = s.match(/\((.*)\)/);
+    return "있음" + (m ? " · " + m[1] : "");
+  }
   function esc(s) {
-    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function byN(n) { for (var i = 0; i < DATA.length; i++) if (DATA[i].n === n) return DATA[i]; return null; }
+
+  /* ---------- 저장(이 기기) ---------- */
+  var LS = "pongdang-log-v2", QS = "pongdang-queue-v2";
+  function rd(k, def) { try { var r = localStorage.getItem(k); return r ? JSON.parse(r) : def; } catch (e) { return def; } }
+  function wr(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+  var log = rd(LS, null) || {};
+  if (!log.device) log.device = Math.random().toString(36).slice(2, 8);
+  if (typeof log.author !== "string") log.author = "";
+  if (!log.entries) log.entries = {};
+  if (log.day !== bizDay()) { log.day = bizDay(); log.entries = {}; }
+  wr(LS, log);
+  var queue = rd(QS, []);
+  if (!Array.isArray(queue)) queue = [];
+
+  var state = { region: "전체", sort: "region", q: "", filters: {}, open: {} };
+  var sync = { s: SYNC.url ? "ok" : "off", last: "" };
+
+  function entry(n) { return log.entries[n] || (log.entries[n] = { v: 0, t: "", m: "" }); }
+  function isDone(n) { var e = log.entries[n]; return !!(e && e.v); }
+  function persist() { wr(LS, log); }
+
+  /* ---------- 서버(구글 드라이브) 전송 ---------- */
+  var flushing = false, flushTimer = null, memoTimers = {};
+  function enqueue(n) {
+    if (!SYNC.url) return;
+    var d = byN(n), e = log.entries[n] || { v: 0, t: "", m: "" };
+    var item = { day: log.day, n: n, name: d.name, region: d.region, v: e.v ? 1 : 0, t: e.t || "", m: e.m || "", author: log.author || "", device: log.device, ts: Date.now() };
+    queue = queue.filter(function (x) { return !(x.day === item.day && x.n === n && x.device === item.device); });
+    queue.push(item);
+    wr(QS, queue);
+    renderSync();
+    clearTimeout(flushTimer);
+    flushTimer = setTimeout(flush, 700);
+  }
+  function flush() {
+    if (!SYNC.url || flushing || !queue.length) { renderSync(); return; }
+    flushing = true;
+    var batch = queue.slice(0, 40);
+    var done = function (ok) {
+      flushing = false;
+      if (ok) {
+        queue = queue.filter(function (x) {
+          return !batch.some(function (b) { return b.day === x.day && b.n === x.n && b.device === x.device && b.ts === x.ts; });
+        });
+        wr(QS, queue);
+        sync.s = "ok"; sync.last = nowHM();
+        if (queue.length) { setTimeout(flush, 200); }
+      } else {
+        sync.s = "error";
+      }
+      renderSync();
+    };
+    fetch(SYNC.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ key: SYNC.key, entries: batch }) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { done(!!(j && j.ok)); })
+      .catch(function () { done(false); });
+  }
+  function renderSync() {
+    var el = document.getElementById("sync"), tx = document.getElementById("syncText"), bt = document.getElementById("syncNow");
+    var s, msg;
+    if (!SYNC.url) {
+      s = "off";
+      msg = "이 기기에만 저장 중입니다. 구글 드라이브 저장은 아직 연결되지 않았습니다.";
+      bt.hidden = true;
+    } else if (queue.length) {
+      s = sync.s === "error" ? "error" : "pending";
+      msg = (s === "error" ? "전송에 실패했습니다. " : "전송 대기 ") + queue.length + "건 · 자동으로 다시 시도합니다.";
+      bt.hidden = false;
+    } else {
+      s = "ok";
+      msg = "드라이브 연결됨 · 자정에 '매장 방문일지' 폴더로 저장" + (sync.last ? " · 마지막 전송 " + sync.last : "");
+      bt.hidden = true;
+    }
+    el.setAttribute("data-s", s);
+    tx.textContent = msg;
   }
 
-  var KEY = "pongdang-rounds-public-visited-v1";
-  var state = { region: "전체", sort: "region", q: "", todo: false, open: {}, done: {} };
-  try {
-    var raw = localStorage.getItem(KEY);
-    if (raw) JSON.parse(raw).forEach(function (n) { state.done[n] = true; });
-  } catch (e) {}
-  function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(Object.keys(state.done).map(Number))); } catch (e) {}
-  }
-
+  /* ---------- 칩 ---------- */
+  var FILTERS = FULL ? [
+    { id: "transfer", label: "양도 희망", test: function (d) { return d.outlook === "양도 희망"; }, count: true },
+    { id: "care", label: "본사 케어 필요", test: function (d) { return !!d.care; }, count: true },
+    { id: "check", label: "계약·미납 확인", test: function (d) { return !!d.unpaid || d.dday <= 90; }, count: true },
+    { id: "todo", label: "미방문만", test: function (d) { return !isDone(d.n); } }
+  ] : [
+    { id: "todo", label: "미방문만", test: function (d) { return !isDone(d.n); } }
+  ];
   var SORTS = {
     region: function (a, b) { return REGION_ORDER.indexOf(a.region) - REGION_ORDER.indexOf(b.region) || a.n - b.n; },
     num: function (a, b) { return a.n - b.n; },
@@ -301,7 +413,6 @@ footer { margin-top: 16px; font-size: 12px; line-height: 1.6; color: var(--muted
     s26: function (a, b) { return b.s26 - a.s26; },
     end: function (a, b) { return a.endMs - b.endMs; }
   };
-
   var elList = document.getElementById("list");
   var elRegions = document.getElementById("regions");
   var elFilters = document.getElementById("filters");
@@ -310,59 +421,89 @@ footer { margin-top: 16px; font-size: 12px; line-height: 1.6; color: var(--muted
     var rh = '<button type="button" class="chip" data-region="전체" aria-pressed="true">전체<span class="ct">' + DATA.length + '</span></button>';
     REGION_ORDER.forEach(function (r) {
       var c = DATA.filter(function (d) { return d.region === r; }).length;
-      rh += '<button type="button" class="chip" data-region="' + r + '" aria-pressed="false">' + r + '<span class="ct">' + c + '</span></button>';
+      if (c) rh += '<button type="button" class="chip" data-region="' + r + '" aria-pressed="false">' + r + '<span class="ct">' + c + '</span></button>';
     });
     elRegions.innerHTML = rh;
-    elFilters.innerHTML = '<button type="button" class="chip" data-todo="1" aria-pressed="false">미방문만 보기</button>';
+    elFilters.innerHTML = FILTERS.map(function (f) {
+      var c = f.count ? '<span class="ct">' + DATA.filter(f.test).length + '</span>' : "";
+      return '<button type="button" class="chip" data-filter="' + f.id + '" aria-pressed="false">' + f.label + c + '</button>';
+    }).join("");
   }
   function syncChips() {
-    Array.prototype.forEach.call(elRegions.children, function (b) {
-      b.setAttribute("aria-pressed", String(b.dataset.region === state.region));
-    });
-    Array.prototype.forEach.call(elFilters.children, function (b) {
-      b.setAttribute("aria-pressed", String(state.todo));
-    });
+    Array.prototype.forEach.call(elRegions.children, function (b) { b.setAttribute("aria-pressed", String(b.dataset.region === state.region)); });
+    Array.prototype.forEach.call(elFilters.children, function (b) { b.setAttribute("aria-pressed", String(!!state.filters[b.dataset.filter])); });
+  }
+
+  /* ---------- 행·상세 ---------- */
+  function tagsFor(d, e) {
+    var t = [];
+    if (e && e.v) t.push('<span class="tag ok">방문 ' + esc(e.t || "") + '</span>');
+    if (FULL) {
+      if (d.outlook === "양도 희망") t.push('<span class="tag bad">양도 희망</span>');
+      if (d.unpaid) t.push('<span class="tag bad">로열티 미납</span>');
+      if (d.dday < 0) t.push('<span class="tag warn">계약종료일 지남</span>');
+      else if (d.dday <= 90) t.push('<span class="tag warn">계약종료 ' + ddayText(d) + '</span>');
+      if (d.care) t.push('<span class="tag warn">본사 케어 필요</span>');
+    }
+    t.push('<span class="until">' + d.ops + ' · 계약 ~' + d.end + '</span>');
+    return t.join("");
+  }
+
+  function logBoxHTML(d) {
+    var e = log.entries[d.n] || {};
+    return '<h3>오늘 방문 기록</h3><div class="log">' +
+      '<div class="logrow"><span class="vs' + (e.v ? ' on' : '') + '">' + (e.v ? "방문 완료" : "아직 방문 전") + '</span>' +
+      '<label>방문 시각<input type="time" data-act="time" value="' + esc(e.t || "") + '"' + (e.v ? "" : " disabled") + '></label></div>' +
+      '<textarea data-act="memo" rows="3" maxlength="1500" placeholder="확인한 점, 요청사항, 후속 조치를 적어두세요" aria-label="' + esc(d.name) + ' 방문 메모">' + esc(e.m || "") + '</textarea></div>';
   }
 
   function detailHTML(d) {
-    var memo = d.memo.length
-      ? '<h3>메모</h3><ul class="notes">' + d.memo.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join("") + '</ul>'
+    var notes = d.notes.length
+      ? '<h3>' + (FULL ? "특이사항" : "매장 메모") + '</h3><ul class="notes">' + d.notes.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join("") + '</ul>'
       : "";
-    var facts = [
-      ["사업 개시", d.start],
-      ["계약 종료", d.end + " (" + ddayText(d) + ")"],
-      ["운영방식", d.ops],
-      ["POS", d.pos],
-      ["매장 규모", d.py + "평 · " + d.fl + "층"],
-      ["업종변경", d.change],
-      ["사입", d.src + (d.items ? " · " + d.items : ""), "wide"]
-    ].map(function (f) {
-      return '<div' + (f[2] ? ' class="wide"' : '') + '><dt>' + f[0] + '</dt><dd>' + esc(f[1]) + '</dd></div>';
-    }).join("");
+    var f = [];
+    if (FULL) f.push(["지인 여부", d.acq === "x" ? "아님" : d.acq, "wide"]);
+    f.push(["사업 개시", d.start]);
+    f.push(["계약 종료", d.end + " (" + ddayText(d) + ")"]);
+    if (FULL) f.push(["로열티", d.roy]);
+    f.push(["운영방식", d.ops]);
+    f.push(["POS", d.pos]);
+    f.push(["매장 규모", d.py + "평 · " + d.fl + "층"]);
+    f.push(["업종변경", d.change]);
+    if (FULL) {
+      f.push(["향후 3개월 동향", d.outlook]);
+      f.push(["양도·해지 의향", exitText(d.exit), "wide"]);
+    }
+    f.push(["사입", d.src + (d.items ? " · " + d.items : ""), "wide"]);
+    var facts = f.map(function (x) { return '<div' + (x[2] ? ' class="wide"' : '') + '><dt>' + x[0] + '</dt><dd>' + esc(x[1]) + '</dd></div>'; }).join("");
     var money =
       '<dt>평당 월평균 (8~10월)</dt><dd>' + d.avg.toLocaleString("ko-KR") + '<small>원/평</small></dd>' +
       '<dt>2025년 총 매출</dt><dd>' + (d.s25 === 0 ? '0<small>원 · 2026 오픈</small>' : won(d.s25)) + '</dd>' +
       '<dt>2026년 총 매출 (10.31까지)</dt><dd>' + won(d.s26) + '</dd>' +
       '<dt>평당매출 (2026 누적)</dt><dd>' + d.pys.toLocaleString("ko-KR") + '<small>원/평</small></dd>';
-    return memo +
-      '<h3>기본 정보</h3><dl class="facts">' + facts + '</dl>' +
-      '<h3>매출</h3><dl class="money">' + money + '</dl>';
+    if (FULL) money += '<dt>임대료 (공급가 기준)</dt><dd>' + (d.rent === "자가" ? "자가" : d.rent + '<small>만원</small>') + '</dd>';
+    return logBoxHTML(d) + notes + '<h3>기본 정보</h3><dl class="facts">' + facts + '</dl><h3>매출' + (FULL ? "·임대료" : "") + '</h3><dl class="money">' + money + '</dl>';
+  }
+
+  function pvHTML(d, e) {
+    var mine = e && e.m;
+    var text = mine ? "오늘 메모 · " + e.m : d.notes.slice(0, 2).join(" · ");
+    return text ? '<span class="pv' + (mine ? " mine" : "") + '">' + esc(text) + '</span>' : "";
   }
 
   function rowHTML(d) {
-    var open = !!state.open[d.n], done = !!state.done[d.n];
-    var pv = d.memo.length ? '<span class="pv">' + esc(d.memo.join(" · ")) + '</span>' : "";
+    var e = log.entries[d.n] || {}, open = !!state.open[d.n], done = !!e.v;
     return '<article class="store' + (open ? " open" : "") + (done ? " done" : "") + '" data-n="' + d.n + '">' +
       '<div class="rowline">' +
-        '<button type="button" class="chk" aria-pressed="' + done + '" aria-label="' + d.name + ' 방문 완료 표시"><i></i></button>' +
+        '<button type="button" class="chk" aria-pressed="' + done + '" aria-label="' + esc(d.name) + ' 방문 완료 표시"><i></i></button>' +
         '<button type="button" class="main" aria-expanded="' + open + '" aria-controls="dt' + d.n + '">' +
-          '<span class="nm"><b>' + d.name + '</b>' +
+          '<span class="nm"><b>' + esc(d.name) + '</b>' +
             '<svg class="chev" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M5.5 3.5 10 8l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
             '<small>' + d.region + ' · ' + d.py + '평 · ' + d.fl + '층</small></span>' +
           '<span class="v">' + eok(d.s26) + '</span>' +
           '<span class="v">' + man1(d.avg) + '<i class="bar"><u style="width:' + Math.max(3, Math.round(d.avg / MAXAVG * 100)) + '%"></u></i></span>' +
-          '<span class="until">' + d.ops + ' · 계약 ~' + d.end + '</span>' +
-          pv +
+          '<span class="tags">' + tagsFor(d, e) + '</span>' +
+          pvHTML(d, e) +
         '</button>' +
       '</div>' +
       '<div class="detail" id="dt' + d.n + '"' + (open ? "" : " hidden") + '>' + detailHTML(d) + '</div>' +
@@ -374,10 +515,10 @@ footer { margin-top: 16px; font-size: 12px; line-height: 1.6; color: var(--muted
     return DATA.filter(function (d) {
       if (state.region !== "전체" && d.region !== state.region) return false;
       if (q) {
-        var hay = (d.name + " " + d.region + " " + d.memo.join(" ")).toLowerCase();
+        var hay = (d.name + " " + d.region + " " + d.notes.join(" ") + (FULL ? " " + d.acq : "")).toLowerCase();
         if (hay.indexOf(q) < 0) return false;
       }
-      if (state.todo && state.done[d.n]) return false;
+      for (var i = 0; i < FILTERS.length; i++) if (state.filters[FILTERS[i].id] && !FILTERS[i].test(d)) return false;
       return true;
     }).sort(SORTS[state.sort]);
   }
@@ -395,7 +536,7 @@ footer { margin-top: 16px; font-size: 12px; line-height: 1.6; color: var(--muted
       if (grouped && d.region !== last) {
         last = d.region;
         var g = rows.filter(function (x) { return x.region === d.region; });
-        var dn = g.filter(function (x) { return state.done[x.n]; }).length;
+        var dn = g.filter(function (x) { return isDone(x.n); }).length;
         html += '<div class="grp"><b>' + d.region + '</b><span>' + g.length + '곳 · 방문 ' + dn + '/' + g.length + '</span></div>';
       }
       html += rowHTML(d);
@@ -405,72 +546,122 @@ footer { margin-top: 16px; font-size: 12px; line-height: 1.6; color: var(--muted
   }
 
   function updateProgress() {
-    var total = DATA.length;
-    var done = DATA.filter(function (d) { return state.done[d.n]; }).length;
+    var total = DATA.length, done = DATA.filter(function (d) { return isDone(d.n); }).length;
     document.getElementById("progText").textContent = "방문 " + done + " / " + total;
     document.getElementById("progFill").style.width = Math.round(done / total * 100) + "%";
   }
+  function renderHeader() {
+    document.getElementById("dayline").innerHTML = '<b>' + bizLabel() + '</b> 방문일지 · 매일 오전 5시에 새로 시작합니다';
+    document.getElementById("foot").textContent = "방문 기록은 매일 오전 5시에 초기화됩니다." + (SYNC.url ? " 초기화 전에 입력한 내용은 이미 드라이브 일지로 전송됩니다." : "");
+  }
+
+  var toastTimer;
+  function toast(msg) {
+    var t = document.getElementById("toast");
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.hidden = true; }, 3500);
+  }
+
+  /* ---------- 새 날 확인(오전 5시) ---------- */
+  function checkRollover() {
+    var d = bizDay();
+    if (log.day === d) return;
+    log.day = d; log.entries = {}; state.open = {};
+    persist();
+    renderHeader(); render();
+    toast("새 방문일지가 시작되었습니다");
+  }
+  setInterval(checkRollover, 30000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) { checkRollover(); flush(); } });
+  window.addEventListener("online", flush);
+  setInterval(function () { if (queue.length) flush(); }, 60000);
+
+  /* ---------- 이벤트 ---------- */
+  function storeOf(el) { var s = el.closest(".store"); return s ? Number(s.dataset.n) : 0; }
 
   elList.addEventListener("click", function (e) {
     if (e.target.id === "clear") {
-      state.region = "전체"; state.q = ""; state.todo = false;
+      state.region = "전체"; state.q = ""; state.filters = {};
       document.getElementById("q").value = "";
       syncChips(); render();
       return;
     }
-    var chk = e.target.closest(".chk");
-    var main = e.target.closest(".main");
+    var chk = e.target.closest(".chk"), main = e.target.closest(".main");
     if (chk) {
-      var n = Number(chk.closest(".store").dataset.n);
-      if (state.done[n]) delete state.done[n]; else state.done[n] = true;
-      save(); render();
+      var n = storeOf(chk), en = entry(n);
+      if (en.v) { en.v = 0; en.t = ""; } else { en.v = 1; en.t = nowHM(); }
+      persist(); enqueue(n); render();
       return;
     }
     if (main) {
-      var st = main.closest(".store");
-      var id = Number(st.dataset.n);
-      var willOpen = !state.open[id];
+      var st = main.closest(".store"), id = Number(st.dataset.n), willOpen = !state.open[id];
       if (willOpen) state.open[id] = true; else delete state.open[id];
       st.classList.toggle("open", willOpen);
       main.setAttribute("aria-expanded", String(willOpen));
       st.querySelector(".detail").hidden = !willOpen;
     }
   });
+  elList.addEventListener("input", function (e) {
+    if (e.target.dataset.act !== "memo") return;
+    var n = storeOf(e.target);
+    entry(n).m = e.target.value;
+    persist();
+    clearTimeout(memoTimers[n]);
+    memoTimers[n] = setTimeout(function () { enqueue(n); }, 1200);
+  });
+  elList.addEventListener("change", function (e) {
+    var act = e.target.dataset.act, n = storeOf(e.target);
+    if (!act || !n) return;
+    if (act === "time") { entry(n).t = e.target.value; persist(); enqueue(n); }
+    if (act === "memo") {
+      clearTimeout(memoTimers[n]); enqueue(n);
+      var st = e.target.closest(".store"), d = byN(n), old = st.querySelector(".pv");
+      var html = pvHTML(d, log.entries[n]);
+      if (old) old.remove();
+      if (html) st.querySelector(".main").insertAdjacentHTML("beforeend", html);
+    }
+  });
 
   elRegions.addEventListener("click", function (e) {
     var b = e.target.closest("[data-region]");
     if (!b) return;
-    state.region = b.dataset.region;
-    syncChips(); render();
+    state.region = b.dataset.region; syncChips(); render();
   });
   elFilters.addEventListener("click", function (e) {
-    if (!e.target.closest("[data-todo]")) return;
-    state.todo = !state.todo;
+    var b = e.target.closest("[data-filter]");
+    if (!b) return;
+    var id = b.dataset.filter;
+    if (state.filters[id]) delete state.filters[id]; else state.filters[id] = true;
     syncChips(); render();
   });
   document.getElementById("q").addEventListener("input", function (e) { state.q = e.target.value; render(); });
   document.getElementById("sort").addEventListener("change", function (e) { state.sort = e.target.value; render(); });
 
+  var authorEl = document.getElementById("author");
+  authorEl.value = log.author;
+  authorEl.addEventListener("change", function () {
+    log.author = authorEl.value.trim(); persist();
+    Object.keys(log.entries).forEach(function (k) { var en = log.entries[k]; if (en.v || en.m) enqueue(Number(k)); });
+  });
+  document.getElementById("syncNow").addEventListener("click", function () { sync.s = "pending"; flush(); });
+
   var resetBtn = document.getElementById("reset"), resetTimer = null;
   resetBtn.addEventListener("click", function () {
-    if (!Object.keys(state.done).length) return;
+    if (!Object.keys(log.entries).length) return;
     if (resetBtn.dataset.armed) {
-      state.done = {}; save(); render();
-      resetBtn.textContent = "방문 초기화"; delete resetBtn.dataset.armed;
-      clearTimeout(resetTimer);
+      Object.keys(log.entries).forEach(function (k) { log.entries[k] = { v: 0, t: "", m: "" }; enqueue(Number(k)); });
+      log.entries = {}; persist(); render();
+      resetBtn.textContent = "오늘 기록 지우기"; delete resetBtn.dataset.armed; clearTimeout(resetTimer);
     } else {
-      resetBtn.dataset.armed = "1";
-      resetBtn.textContent = "한 번 더 누르면 초기화";
-      resetTimer = setTimeout(function () {
-        resetBtn.textContent = "방문 초기화"; delete resetBtn.dataset.armed;
-      }, 3500);
+      resetBtn.dataset.armed = "1"; resetBtn.textContent = "한 번 더 누르면 지웁니다";
+      resetTimer = setTimeout(function () { resetBtn.textContent = "오늘 기록 지우기"; delete resetBtn.dataset.armed; }, 3500);
     }
   });
 
-  buildChips();
-  syncChips();
-  render();
+  buildChips(); syncChips(); renderHeader(); renderSync(); render();
+  if (queue.length) flush();
 })();
 </script>
-</body>
+
 </html>
